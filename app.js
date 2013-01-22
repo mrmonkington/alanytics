@@ -1,14 +1,23 @@
 var sys = require("sys"),
     fs = require("fs"),
     http = require("http"),
-    crypto = require("crypto");
-    xregexp = require("xregexp");
+    config = require('config'),
+    xregexp = require("xregexp"),
+    dbi = require("node-dbi");
 var redisClient = require("redis")
-var db = redisClient.createClient();
+var red = redisClient.createClient();
 var cronJob = require('cron').CronJob;
-db.on("error", function (err) {
+red.on("error", function (err) {
     console.log("Error " + err);
 });
+dbconf = {
+    host: config.database.host,
+    user: config.database.user,
+    password: config.database.password,
+    database: config.database.name
+};
+db = new dbi.DBWrapper( 'mysql', dbconf);
+db.connect();
 
 // set up alan!
 
@@ -17,25 +26,55 @@ var alan = fs.readFileSync( "alan.gif" );
 // oh you can require json!
 var collections = require( "./collections.json" );
 
+// hacked out of the DBI adapter class
+// why don't they let you access this directly?
+function format( sql, bind ) {
+    sql = sql.replace( /\$([1-9]+)/g, function( match, p1, offset, s ) {
+        if (bind.length == 0) {
+            throw new Error('too few parameters given');
+        }
+        return db.escape( bind[parseInt(p1)-1] );
+    } );
+  
+    return sql;
+}
+
 new cronJob( '*/5 * * * * *', function() {
     console.log( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
-        //if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
-        //    console.log( match );
-        //}
-        // iterate through matching keys
         if( collections[j].collection ) {
-            db.keys( collections[j].collection.redispattern, function( err, keys ) {
-                for( var ki = 0; ki < keys.length; ki ++ ) {
-                    db.get( keys[ki], function( err, val ) {
-                        console.log( val );
-                    } );
-                }
-            } );
+            red.keys(
+                collections[j].collection.redispattern,
+                (
+                    function( coll, err, keys ) {
+                        for( var ki = 0; ki < keys.length; ki ++ ) {
+                            red.get(
+                                keys[ki],
+                                (
+                                    function( key, coll, err, val ) {
+                                        if( match = new RegExp( coll.pattern ).exec( key ) ) {
+                                            str = format( coll.collection.sql, [val].concat(match.slice(1)) );                 
+                                            console.log( str );
+                                            db.query( str, function( err, res ) {
+                                                if( err ) {
+                                                    // don't die!
+                                                    console.error( err );
+                                                } else {
+                                                    console.log( "record updated" );
+                                                }
+                                            } );
+                                        }
+                                    }
+                                ).bind( null, keys[ki], coll )
+                            );
+                        }
+                    }
+                ).bind( null, collections[j] )
+            );
         }
     }
 }, null, true, 'Europe/London' );
- 
+     
 http.createServer(function(request, response) {
     //var date = new Date;
     //var day = date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
@@ -50,24 +89,13 @@ http.createServer(function(request, response) {
             for( var j = 0; j < collections.length; j ++ ) {
                 if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
                     console.log( "Matched - increment" );
-                    db.incr( actions[i] );
+                    red.incr( actions[i] );
                 }
             }
         }
     }
 
 
-    //var urlhash = crypto.createHash("md5").update(request.headers.referer).digest("hex");
-
-    /*var keys = [
-    "hits-by-url:" + urlhash, 
-    "hits-by-day:" + day, 
-    "hits-by-url-by-day:" + urlhash + ":" + day
-    ];
-
-    for (i in keys)
-    db.incr(keys[i]);
-    */
     response.writeHead(200, { "Content-Type": "image/gif" });
     response.write( alan, "binary" );        
     response.end();

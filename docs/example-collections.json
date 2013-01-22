@@ -1,0 +1,13 @@
+[
+    {
+        "pattern": "monkey:(.*)",
+        "extra_keys": [
+            "$0:%day"
+        ],
+        "title": "monkey counter",
+        "collection" : {
+            "redispattern": "monkey:*",
+            "sql": "REPLACE INTO monkeys SET count = $1, name = $2"
+        }
+    }
+]

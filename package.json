@@ -11,6 +11,8 @@
         "cron": "X",
         "crypto": "X",
         "redis": "X",
+        "yaml": "X",
+        "node-dbi": "X",
         "hiredis": "X",
         "time": "X"
     }
