@@ -1,0 +1,15 @@
+{
+    "name": "alanytics",
+    "description": "A simple counter for your site usage",
+    "version": "0.0.1",
+    "private": true,
+    "dependencies": {
+        "config": "0.4.X",
+        "http": "X",
+        "mysql": "0.9.X",
+        "xregexp": "X",
+        "crypto": "X",
+        "redis-client": "X",
+        "image": "X"
+    }
+}
