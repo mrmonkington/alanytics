@@ -15,7 +15,7 @@ Just place a tracking Alan on your site, and pass in the counters you wish
 to increment in the URL:
 
 ```
-    http://server/monkeypants,monkey:poo
+    <img src="http://server/monkeypants,monkey:poo" width="30" height="30" alt="Alan Alan Alan" />
 ```
 
 A job the runs every now and again (configure cron spec in the code) to
