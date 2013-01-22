@@ -8,8 +8,10 @@
         "http": "X",
         "mysql": "0.9.X",
         "xregexp": "X",
+        "cron": "X",
         "crypto": "X",
-        "redis-client": "X",
-        "image": "X"
+        "redis": "X",
+        "hiredis": "X",
+        "time": "X"
     }
 }
