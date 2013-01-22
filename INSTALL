@@ -1,0 +1,16 @@
+Installation
+============
+
+Install node, etc.
+
+`npm install` to get deps.
+
+Copy `example-collections.json` to `collections.json` and edit.
+
+Copy `config/example-default.yaml` to `config/default.yaml`.
+
+Hack it all about a bit.
+
+Run it.
+
+Don't cache!

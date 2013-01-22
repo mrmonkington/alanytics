@@ -39,7 +39,7 @@ function format( sql, bind ) {
     return sql;
 }
 
-new cronJob( '*/5 * * * * *', function() {
+new cronJob( '*/10 * * * * *', function() {
     console.log( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
         if( collections[j].collection ) {
@@ -54,7 +54,7 @@ new cronJob( '*/5 * * * * *', function() {
                                     function( key, coll, err, val ) {
                                         if( match = new RegExp( coll.pattern ).exec( key ) ) {
                                             str = format( coll.collection.sql, [val].concat(match.slice(1)) );                 
-                                            console.log( str );
+                                            //console.log( str );
                                             db.query( str, function( err, res ) {
                                                 if( err ) {
                                                     // don't die!
@@ -85,10 +85,10 @@ http.createServer(function(request, response) {
         actions = action_spec.split(",");
         for( var i = 0; i < actions.length; i++ ) {
             // increment count in redis
-            console.log( actions[i] );
+            //console.log( actions[i] );
             for( var j = 0; j < collections.length; j ++ ) {
                 if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
-                    console.log( "Matched - increment" );
+                    //console.log( "Matched - increment" );
                     red.incr( actions[i] );
                 }
             }

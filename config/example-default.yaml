@@ -1,0 +1,7 @@
+database:
+    engine: 'mysql'
+    host: 'localhost'
+    name: 'monkeys'
+    password: 'poop'
+    user: 'mark'
+    
