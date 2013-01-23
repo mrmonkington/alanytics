@@ -4,4 +4,7 @@ database:
     name: 'monkeys'
     password: 'poop'
     user: 'mark'
-    
+
+redis:
+    host: 'red1.db'
+    port: 6379

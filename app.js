@@ -1,11 +1,12 @@
-var sys = require("sys"),
-    fs = require("fs"),
+var fs = require("fs"),
     http = require("http"),
     config = require('config'),
     xregexp = require("xregexp"),
     dbi = require("node-dbi");
-var redisClient = require("redis")
-var red = redisClient.createClient();
+var redisClient = require("redis");
+console.log( config.redis.host );
+console.log( config.database.host );
+var red = redisClient.createClient( config.redis.port, config.redis.host );
 var cronJob = require('cron').CronJob;
 red.on("error", function (err) {
     console.log("Error " + err);
