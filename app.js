@@ -33,7 +33,7 @@ function format( sql, bind ) {
     return sql;
 }
 
-new cronJob( '*/5 * * * * *', function() {
+new cronJob( config.cron.spec, function() {
     console.log( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
         if( collections[j].collection ) {

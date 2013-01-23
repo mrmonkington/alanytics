@@ -1,3 +1,9 @@
+server:
+    port: 3000
+
+cron:
+    spec: '*/5 * * * * *'
+
 database:
     engine: 'mysql'
     host: 'localhost'
