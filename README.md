@@ -25,6 +25,19 @@ you specify.
 Requires a redis server, and optionally a SQL server to run collections
 against.
 
+Installation
+------------
+
+Assuming you're deploying this as user 'deploy'
+
+```
+npm install
+# vim config/default.yaml
+# vim collections.json
+sudo mkdir /var/run/alanytics/ && sudo chown deploy:deploy /var/run/alanytics/
+sudo -u deploy node apps.js
+```
+
 TODO
 ----
 

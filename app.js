@@ -6,6 +6,42 @@ var fs = require("fs"),
     redisClient = require("redis"),
     cronJob = require('cron').CronJob;
 
+// PROC CONTROL
+
+process.title = "alanytics";
+ 
+var PID_FILE  = "/var/run/alanytics/"+process.title+".pid"
+,   fs        = require('fs');
+ 
+fs.writeFileSync(PID_FILE, process.pid+"\n");
+ 
+process.on("uncaughtException", function(err) {
+  console.error("[uncaughtException]", err);
+  return process.exit(1);
+});
+ 
+process.on("SIGTERM", function() {
+  console.log("SIGTERM (killed by supervisord or another process management tool)");
+  return process.exit(0);
+});
+ 
+process.on("SIGINT", function() {
+  console.log("SIGINT");
+  return process.exit(0);
+});
+ 
+process.on("exit", function() {
+  return fs.unlink(PID_FILE);
+});
+ 
+//
+// Your code start here
+//
+ 
+setInterval(function(){}, 1000);
+
+// END PROC CONTROL
+
 var red = redisClient.createClient( config.redis.port, config.redis.host );
 red.on("error", function (err) {
     console.error("Error " + err);
