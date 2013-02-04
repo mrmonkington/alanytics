@@ -58,6 +58,7 @@ db.connect();
 
 // set up alan!
 var alan = fs.readFileSync( "alan.gif" );
+var transpalan = fs.readFileSync( "transparent.gif" );
 
 var collections = require( "./collections.json" );
 
@@ -121,7 +122,7 @@ http.createServer(function(request, response) {
     }
 
     response.writeHead(200, { "Content-Type": "image/gif" });
-    response.write( alan, "binary" );        
+    response.write( transpalan, "binary" );        
     response.end();
 } ).listen( config.server.port );
 
