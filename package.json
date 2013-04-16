@@ -14,6 +14,7 @@
         "yaml": "X",
         "node-dbi": "X",
         "hiredis": "X",
-        "time": "X"
+        "time": "X",
+        "nodeunit": "X"
     }
 }
