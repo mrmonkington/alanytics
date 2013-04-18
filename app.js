@@ -1,6 +1,6 @@
 var fs = require("fs"),
     http = require("http"),
-    config = require('config'),
+    config = require('./config/default.json'),
     xregexp = require("xregexp"),
     dbi = require("node-dbi"),
     redisClient = require("redis"),
@@ -9,6 +9,12 @@ var fs = require("fs"),
     ;
 
 // PROC CONTROL
+
+function debug( msg ) {
+    if( config.debug ) {
+        util.debug( msg );
+    }
+}
 
 process.title = "alanytics";
  
@@ -80,14 +86,14 @@ function format( sql, bind ) {
 }
 
 new cronJob( config.cron.spec, function() {
-    util.debug( "Collecting..." );
+    debug( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
         if( collections[j].collection ) {
-            util.debug( "  Updating '" + collections[j].title + "'" );
+            debug( "  Updating '" + collections[j].title + "'" );
             red.keys(
                 collections[j].collection.redispattern,
                 ( function( coll, err, keys ) {
-                    util.debug( "    Found " + keys.length + " keys" );
+                    debug( "    Found " + keys.length + " keys" );
                     for( var ki = 0; ki < keys.length; ki ++ ) {
                         red.get(
                             keys[ki],
@@ -117,10 +123,10 @@ http.createServer(function(request, response) {
     //var day = date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
     
     ua = request.headers[ "user-agent" ];
-    util.debug( ua );
+    debug( ua );
     if( ua ) {
-        if( bladerunner.validate( ua ) ) {
-            util.debug( "validates" );
+        if( bladerunner.validate( { "client_useragent": ua } ) ) {
+            debug( "validates" );
             action_spec = request.url.slice(1);
             if( action_spec ) {
                 actions = action_spec.split(",");
@@ -135,6 +141,8 @@ http.createServer(function(request, response) {
                     }
                 }
             }
+        } else {
+            debug( "robot rock" );
         }
     }
 
