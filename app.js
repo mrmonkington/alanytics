@@ -4,16 +4,22 @@ var fs = require("fs"),
     xregexp = require("xregexp"),
     dbi = require("node-dbi"),
     redisClient = require("redis"),
-    cronJob = require('cron').CronJob;
+    cronJob = require('cron').CronJob,
+    util = require('util')
+    ;
 
 // PROC CONTROL
 
 process.title = "alanytics";
  
-var PID_FILE  = "/var/run/alanytics/"+process.title+".pid"
-,   fs        = require('fs');
+var PID_FILE
+if( config.pid_dir ) {
+    PID_FILE  = config.pid_dir + "/" + process.title + ".pid"
+} else {
+    PID_FILE  = "/var/run/alanytics/" + process.title + ".pid"
+}
  
-fs.writeFileSync(PID_FILE, process.pid+"\n");
+fs.writeFileSync( PID_FILE, process.pid + "\n" );
  
 process.on("uncaughtException", function(err) {
   console.error("[uncaughtException]", err);
@@ -62,6 +68,9 @@ var transpalan = fs.readFileSync( "transparent.gif" );
 
 var collections = require( "./collections.json" );
 
+var robots = require( './robots.js' );
+var bladerunner = new robots.Bladerunner( "config/robots.iab", "abce" );
+
 function format( sql, bind ) {
     sql = sql.replace( /\$([1-9]+)/g, function( match, p1, offset, s ) {
         return db.escape( bind[parseInt(p1)-1] );
@@ -71,12 +80,14 @@ function format( sql, bind ) {
 }
 
 new cronJob( config.cron.spec, function() {
-    console.log( "Collecting..." );
+    util.debug( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
         if( collections[j].collection ) {
+            util.debug( "  Updating '" + collections[j].title + "'" );
             red.keys(
                 collections[j].collection.redispattern,
                 ( function( coll, err, keys ) {
+                    util.debug( "    Found " + keys.length + " keys" );
                     for( var ki = 0; ki < keys.length; ki ++ ) {
                         red.get(
                             keys[ki],
@@ -104,18 +115,24 @@ new cronJob( config.cron.spec, function() {
 http.createServer(function(request, response) {
     //var date = new Date;
     //var day = date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
-
-    action_spec = request.url.slice(1);
-
-    if( action_spec ) {
-        actions = action_spec.split(",");
-        for( var i = 0; i < actions.length; i++ ) {
-            // increment count in redis
-            //console.log( actions[i] );
-            for( var j = 0; j < collections.length; j ++ ) {
-                if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
-                    //console.log( "Matched - increment" );
-                    red.incr( actions[i] );
+    
+    ua = request.headers[ "user-agent" ];
+    util.debug( ua );
+    if( ua ) {
+        if( bladerunner.validate( ua ) ) {
+            util.debug( "validates" );
+            action_spec = request.url.slice(1);
+            if( action_spec ) {
+                actions = action_spec.split(",");
+                for( var i = 0; i < actions.length; i++ ) {
+                    // increment count in redis
+                    //console.log( actions[i] );
+                    for( var j = 0; j < collections.length; j ++ ) {
+                        if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
+                            //console.log( "Matched - increment" );
+                            red.incr( actions[i] );
+                        }
+                    }
                 }
             }
         }

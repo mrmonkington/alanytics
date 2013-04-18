@@ -1,5 +1,6 @@
 // Kills robots
 var fs = require("fs");
+var util = require("util");
 
 RegExp.escape = function(s) {
     return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
@@ -26,8 +27,8 @@ var Bladerunner = function( src, format ) {
                 expiry = fields[5];
                 if( active == "1" ) {
                     this.robots.push( {
-                        "pattern" : new RegExp( RegExp.escape( pattern ) ),
-                        "exceptions" : new RegExp( exceptions.replace( ",", "|" ) )
+                        "pattern" : new RegExp( RegExp.escape( pattern), "i" ),
+                        "exceptions" : new RegExp( exceptions.replace( ",", "|" ), "i" )
                     } );
                 }
             }
@@ -38,12 +39,13 @@ var Bladerunner = function( src, format ) {
 
     // iS NOT robot?
 	this.validate = function( match ) {
-		this.robots.forEach( ( function( robot, match ) {
+		for( var i in this.robots ) {
+            robot = this.robots[i]; 
 			// TODO check robot exceptions list
-			if( robot.pattern.exec( match[ "client_useragent" ] ) ) {
+			if( robot.pattern.exec( match[ "client_useragent" ], "i" ) ) {
 				return false;
             }
-        } ).bind( match ) );
+        }
 		return true;
     };
 
