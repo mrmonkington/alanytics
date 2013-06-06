@@ -1,13 +1,28 @@
 [
     {
         "pattern": "monkey:(.*)",
-        "extra_keys": [
-            "$0:%day"
+        "keys": [
+            {
+                "set": "monkey",
+                "format": "$1"
+            },
+            {
+                "set": "monkeybythehour",
+                "$1:YYYY:MM:DD:HH"
+            }
         ],
         "title": "monkey counter",
-        "collection" : {
-            "redispattern": "monkey:*",
-            "sql": "REPLACE INTO monkeys SET count = $1, name = $2"
-        }
+        "collections" : [
+            {
+                "set": "monkey",
+                "pattern": "monkey:([^:]+)$",
+                "sql": "REPLACE INTO monkeys SET count = $1, name = $2"
+            },
+            {
+                "set": "monkeybythehour",
+                "pattern": "monkey:([^:]+):([^:]+):([^:]+):([^:]+):([^:]+)$",
+                "sql": "REPLACE INTO monkeyhours SET count = $1, name = $2, year = $3, month = $4, day = $5, hour = $6"
+            }
+        ]
     }
 ]

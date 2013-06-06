@@ -5,7 +5,8 @@ var fs = require("fs"),
     dbi = require("node-dbi"),
     redisClient = require("redis"),
     cronJob = require('cron').CronJob,
-    util = require('util')
+    util = require('util'),
+    moment = require('moment')
     ;
 
 // PROC CONTROL
@@ -135,8 +136,20 @@ http.createServer(function(request, response) {
                     //console.log( actions[i] );
                     for( var j = 0; j < collections.length; j ++ ) {
                         if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
-                            //console.log( "Matched - increment" );
-                            red.incr( actions[i] );
+                            if( collections[j].keys ) {
+                                for( k = 0; k < collections[j].keys.length; k ++ ) {
+                                    var key = moment.format(
+                                        format(
+                                            collections[j].keys[k].format,
+                                            match.slice(1)
+                                        )
+                                    );
+                                    console.log( "Matched - increment " + key );
+                                    red.incr( key );
+                                    // put this key in a redis 'dirty' set
+                                    red.sadd( collections[j].keys[k].set, key );
+                                }
+                            }
                         }
                     }
                 }
