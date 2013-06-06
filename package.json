@@ -15,6 +15,7 @@
         "node-dbi": "X",
         "hiredis": "X",
         "time": "X",
-        "nodeunit": "X"
+        "nodeunit": "X",
+        "moment": "X"
     }
 }

@@ -18,6 +18,14 @@ to increment in the URL:
     <img src="http://server/monkeypants,monkey:poo" width="30" height="30" alt="Alan Alan Alan" />
 ```
 
+or probably better, with a bit of cache busting
+
+```
+    <script>
+        document.write('<img src="http://server/monkeypants,monkey:poo?' + Math.floor(Math.random()*99999999) + '" width="30" height="30" alt="Alan Alan Alan" />');
+    </script>
+```
+
 A job the runs every now and again (configure cron spec in the code) to
 collect the redis keys into your SQL database according to whatever patterns
 you specify.
