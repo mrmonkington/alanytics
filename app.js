@@ -16,6 +16,9 @@ function debug( msg ) {
         util.debug( msg );
     }
 }
+function error( msg ) {
+    console.error( msg );
+}
 
 process.title = "alanytics";
  
@@ -80,6 +83,13 @@ var bladerunner = new robots.Bladerunner( "config/robots.iab", "abce" );
 
 function format( sql, bind ) {
     sql = sql.replace( /\$([1-9]+)/g, function( match, p1, offset, s ) {
+        return bind[parseInt(p1)-1];
+    } );
+  
+    return sql;
+}
+function formatSQL( sql, bind ) {
+    sql = sql.replace( /\$([1-9]+)/g, function( match, p1, offset, s ) {
         return db.escape( bind[parseInt(p1)-1] );
     } );
   
@@ -89,10 +99,17 @@ function format( sql, bind ) {
 new cronJob( config.cron.spec, function() {
     debug( "Collecting..." );
     for( var j = 0; j < collections.length; j ++ ) {
-        if( collections[j].collection ) {
-            debug( "  Updating '" + collections[j].title + "'" );
-            red.keys(
-                collections[j].collection.redispattern,
+        debug( "  Updating '" + collections[j].title + "'" );
+        for( var k = 0; k < collections[j].collections.length; k++ ) {
+            colspec = collections[j].collections[k];
+            debug( "    Using set '" + colspec.set + "'" );
+            if( colspec.presql ) {
+                db.query( colspec.presql, function( err, res ) {
+                    if( err ) { error( err ); }
+                } );
+            }
+            red.smembers(
+                colspec.set,
                 ( function( coll, err, keys ) {
                     debug( "    Found " + keys.length + " keys" );
                     for( var ki = 0; ki < keys.length; ki ++ ) {
@@ -100,7 +117,8 @@ new cronJob( config.cron.spec, function() {
                             keys[ki],
                             ( function( key, coll, err, val ) {
                                 if( match = new RegExp( coll.pattern ).exec( key ) ) {
-                                    str = format( coll.collection.sql, [val].concat(match.slice(1)) );                 
+                                    str = formatSQL( coll.sql, [val].concat(match.slice(1)) );                 
+                                    debug( str );
                                     db.query( str, function( err, res ) {
                                         if( err ) {
                                             // don't die!
@@ -112,9 +130,19 @@ new cronJob( config.cron.spec, function() {
                                 }
                             } ).bind( null, keys[ki], coll )
                         );
+                        if( true == coll.reset ) {
+                            debug( "    Clearing " + keys[ki] );
+                            red.del( keys[ki] );
+                        }
                     }
-                } ).bind( null, collections[j] )
+                } ).bind( null, colspec )
             );
+            red.del( colspec.set );
+            if( colspec.postsql ) {
+                db.query( colspec.postsql, function( err, res ) {
+                    if( err ) { error( err ); }
+                } );
+            }
         }
     }
 }, null, true, 'Europe/London' );
@@ -124,11 +152,11 @@ http.createServer(function(request, response) {
     //var day = date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
     
     ua = request.headers[ "user-agent" ];
-    debug( ua );
+    //debug( ua );
     if( ua ) {
         if( bladerunner.validate( { "client_useragent": ua } ) ) {
-            debug( "validates" );
-            action_spec = request.url.slice(1);
+            //debug( "validates" );
+            action_spec = request.url.slice(1).split("?")[0];
             if( action_spec ) {
                 actions = action_spec.split(",");
                 for( var i = 0; i < actions.length; i++ ) {
@@ -138,13 +166,13 @@ http.createServer(function(request, response) {
                         if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
                             if( collections[j].keys ) {
                                 for( k = 0; k < collections[j].keys.length; k ++ ) {
-                                    var key = moment.format(
+                                    var key = moment().format(
                                         format(
                                             collections[j].keys[k].format,
                                             match.slice(1)
                                         )
                                     );
-                                    console.log( "Matched - increment " + key );
+                                    //debug( "Matched - increment " + key );
                                     red.incr( key );
                                     // put this key in a redis 'dirty' set
                                     red.sadd( collections[j].keys[k].set, key );
@@ -155,13 +183,13 @@ http.createServer(function(request, response) {
                 }
             }
         } else {
-            debug( "robot rock" );
+            //debug( "robot rock" );
         }
     }
 
     response.writeHead(200, { "Content-Type": "image/gif" });
     response.write( transpalan, "binary" );        
     response.end();
-} ).listen( config.server.port );
+} ).listen( config.server.port, config.server.host );
 
-console.log( "Listening on port " + config.server.port + "." );
+console.log( "Listening on " + config.server.host + ":" + config.server.port + "." );
