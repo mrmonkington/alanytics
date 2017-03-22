@@ -1,15 +1,14 @@
-var fs = require("fs"),
-    http = require("http"),
-    config = require('./config/default.json'),
-    xregexp = require("xregexp"),
-    dbi = require("node-dbi"),
-    redisClient = require("redis"),
-    cronJob = require('cron').CronJob,
-    util = require('util'),
-    moment = require('moment')
-    ;
+var config = require('./config/default.json');
 
-// PROC CONTROL
+var fs = require("fs");
+var http = require("http");
+var xregexp = require("xregexp");
+var dbi = require("node-dbi");
+var cronJob = require('cron').CronJob;
+var redisClient = require("redis");
+var util = require('util');
+
+var collect = require('./lib/collect.js');
 
 function debug( msg ) {
     if( config.debug ) {
@@ -96,100 +95,7 @@ function formatSQL( sql, bind ) {
     return sql;
 }
 
-new cronJob( config.cron.spec, function() {
-    debug( "Collecting..." );
-    for( var j = 0; j < collections.length; j ++ ) {
-        debug( "  Updating '" + collections[j].title + "'" );
-        for( var k = 0; k < collections[j].collections.length; k++ ) {
-            colspec = collections[j].collections[k];
-            debug( "    Using set '" + colspec.set + "'" );
-            if( colspec.presql ) {
-                db.query( colspec.presql, function( err, res ) {
-                    if( err ) { error( err ); }
-                } );
-            }
-            red.smembers(
-                colspec.set,
-                ( function( coll, err, keys ) {
-                    debug( "    Found " + keys.length + " keys" );
-                    for( var ki = 0; ki < keys.length; ki ++ ) {
-                        red.get(
-                            keys[ki],
-                            ( function( key, coll, err, val ) {
-                                if( match = new RegExp( coll.pattern ).exec( key ) ) {
-                                    str = formatSQL( coll.sql, [val].concat(match.slice(1)) );                 
-                                    debug( str );
-                                    db.query( str, function( err, res ) {
-                                        if( err ) {
-                                            // don't die!
-                                            console.error( err );
-                                        } else {
-                                            // nothing :)
-                                        }
-                                    } );
-                                }
-                            } ).bind( null, keys[ki], coll )
-                        );
-                        if( true == coll.reset ) {
-                            debug( "    Clearing " + keys[ki] );
-                            red.del( keys[ki] );
-                        }
-                    }
-                } ).bind( null, colspec )
-            );
-            red.del( colspec.set );
-            if( colspec.postsql ) {
-                db.query( colspec.postsql, function( err, res ) {
-                    if( err ) { error( err ); }
-                } );
-            }
-        }
-    }
-}, null, true, 'Europe/London' );
      
-http.createServer(function(request, response) {
-    //var date = new Date;
-    //var day = date.getUTCFullYear() + "-" + (date.getUTCMonth() + 1) + "-" + date.getUTCDate();
-    
-    ua = request.headers[ "user-agent" ];
-    //debug( ua );
-    if( ua ) {
-        if( bladerunner.validate( { "client_useragent": ua } ) ) {
-            //debug( "validates" );
-            action_spec = request.url.slice(1).split("?")[0];
-            if( action_spec ) {
-                actions = action_spec.split(",");
-                for( var i = 0; i < actions.length; i++ ) {
-                    // increment count in redis
-                    //console.log( actions[i] );
-                    for( var j = 0; j < collections.length; j ++ ) {
-                        if( match = new RegExp( collections[j].pattern ).exec( actions[i] ) ) {
-                            if( collections[j].keys ) {
-                                for( k = 0; k < collections[j].keys.length; k ++ ) {
-                                    var key = moment().format(
-                                        format(
-                                            collections[j].keys[k].format,
-                                            match.slice(1)
-                                        )
-                                    );
-                                    //debug( "Matched - increment " + key );
-                                    red.incr( key );
-                                    // put this key in a redis 'dirty' set
-                                    red.sadd( collections[j].keys[k].set, key );
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            //debug( "robot rock" );
-        }
-    }
-
-    response.writeHead(200, { "Content-Type": "image/gif" });
-    response.write( transpalan, "binary" );        
-    response.end();
-} ).listen( config.server.port, config.server.host );
+http.createServer( collect.dispatch ).listen( config.server.port, config.server.host );
 
 console.log( "Listening on " + config.server.host + ":" + config.server.port + "." );
